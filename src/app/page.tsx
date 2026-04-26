@@ -98,7 +98,7 @@ export default function Home() {
               }}
             >
               {isAuthenticated ? (
-                <Button size="lg" className="min-h-[44px]" onClick={() => router.push("/onboarding")}>
+                <Button size="lg" className="min-h-[44px]" onClick={() => router.push("/dashboard")}>
                   Go to your plan →
                 </Button>
               ) : (
@@ -121,11 +121,11 @@ export default function Home() {
                     </button>
                   ) : waitlistStatus === "joined" ? (
                     <p className="text-sm text-green-600 dark:text-green-400">
-                      You're on the list. We'll be in touch.
+                      You&apos;re on the list. We&apos;ll be in touch.
                     </p>
                   ) : waitlistStatus === "exists" ? (
                     <p className="text-sm text-muted-foreground">
-                      You're already on the list.
+                      You&apos;re already on the list.
                     </p>
                   ) : (
                     <form

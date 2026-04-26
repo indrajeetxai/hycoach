@@ -43,7 +43,7 @@ export function FinalCta() {
         </p>
 
         {isAuthenticated ? (
-          <Button size="lg" className="min-h-[44px]" onClick={() => router.push("/onboarding")}>
+          <Button size="lg" className="min-h-[44px]" onClick={() => router.push("/dashboard")}>
             Go to your plan →
           </Button>
         ) : (

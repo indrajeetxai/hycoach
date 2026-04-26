@@ -20,7 +20,7 @@ When all items in a release are done, ship the release, then move to the next re
 - [x] **A3.** Initialize Convex via `npx convex dev`; verify it generates `convex/_generated/`
 - [x] **A4.** Install + configure Convex Auth (`@convex-dev/auth`) with Google OAuth provider
 - [x] **A5.** Set up Google Cloud OAuth credentials; populate `.env.local` (AUTH_GOOGLE_ID, AUTH_GOOGLE_SECRET, NEXT_PUBLIC_CONVEX_URL)
-- [ ] **A6.** Set ANTHROPIC_API_KEY in Convex env via `npx convex env set ANTHROPIC_API_KEY <key>`
+- [x] **A6.** Set ANTHROPIC_API_KEY in Convex env via `npx convex env set ANTHROPIC_API_KEY <key>`
 - [x] **A7.** Build sign-in / sign-out flow (test: sign in with Google, sign out, sign in again)
 - [x] **A8.** Implement light/dark theme toggle (default = system; persist in profiles once profile exists)
 
@@ -56,22 +56,22 @@ When all items in a release are done, ship the release, then move to the next re
 - [x] **C12.** On final step submit: persist full profile to Convex; route to Reality Check
 
 ### Phase D — Prompt loader + Reality Check
-- [ ] **D1.** Implement `scripts/sync-prompts.ts` per `prompts/prompt-composition.md`: walks `prompts/`, generates `convex/_prompts.ts` exporting each as a string constant. Add `sync-prompts`, `predev`, `prebuild` npm scripts. Verify `convex/_prompts.ts` is gitignored.
-- [ ] **D2.** Implement commitment math in `convex/lib/commitmentMath.ts` per PRD §2 Moment A: takes profile, returns `{available_minutes, required_minutes_min, required_minutes_max, deficit, goal_tier}`. Pure function, no I/O.
-- [ ] **D3.** Define Zod schemas in `convex/lib/schemas.ts` for both Reality Check output and full Plan structure (mirrors PRD §7).
-- [ ] **D4.** Build `convex/lib/composePrompt.ts` per `prompts/prompt-composition.md`: takes `{persona, callContent}`, returns assembled system prompt with XML wrappers.
-- [ ] **D5.** Write Convex action `convex/actions/realityCheck.ts`: calls Anthropic with tool-use (`submit_reality_check`), validates with Zod, returns `{feasible, verdict, suggestions}`.
-- [ ] **D6.** Build Reality Check UI: feasibility verdict in coach voice + suggestion buttons + "Continue anyway"
-- [ ] **D7.** Implement state machine: each adjustment re-runs commitment math + Reality Check; only proceed to plan generation when feasible OR explicit continue-anyway
+- [x] **D1.** Implement `scripts/sync-prompts.ts` per `prompts/prompt-composition.md`: walks `prompts/`, generates `convex/_prompts.ts` exporting each as a string constant. Add `sync-prompts`, `predev`, `prebuild` npm scripts. Verify `convex/_prompts.ts` is gitignored.
+- [x] **D2.** Implement commitment math in `convex/lib/commitmentMath.ts` per PRD §2 Moment A: takes profile, returns `{available_minutes, required_minutes_min, required_minutes_max, deficit, goal_tier}`. Pure function, no I/O.
+- [x] **D3.** Define Zod schemas in `convex/lib/schemas.ts` for both Reality Check output and full Plan structure (mirrors PRD §7).
+- [x] **D4.** Build `convex/lib/composePrompt.ts` per `prompts/prompt-composition.md`: takes `{persona, callContent}`, returns assembled system prompt with XML wrappers.
+- [x] **D5.** Write Convex action `convex/actions/realityCheck.ts`: calls Anthropic with tool-use (`submit_reality_check`), validates with Zod, returns `{feasible, verdict, suggestions}`.
+- [x] **D6.** Build Reality Check UI: feasibility verdict in coach voice + suggestion buttons + "Continue anyway"
+- [x] **D7.** Implement state machine: each adjustment re-runs commitment math + Reality Check; only proceed to plan generation when feasible OR explicit continue-anyway
 
 ### Phase E — Plan Generation + Plan View
-- [ ] **E1.** Write Convex action `convex/actions/planGeneration.ts`: composes system prompt, calls Anthropic with tool-use (`submit_plan`), validates with Zod, persists weeks/workouts/exercises rows in a single transaction.
-- [ ] **E2.** Build loading state during plan gen (intentional copy: "Coach is reviewing your inputs… designing your weeks… finalizing your first session"). Set Convex action timeout to 60s.
-- [ ] **E3.** Handle errors: Zod failure → retry once with stricter prompt addition → if still fails, surface "Coach is having an off day" UI; do not persist invalid data.
-- [ ] **E4.** Build Plan View screen: list all weeks with phase badges; expandable per-week showing reasoning, coach note, all workouts with exercises
-- [ ] **E5.** Highlight current week (date-derived from `weeks.startDate` vs today); "upcoming" / "current" / "done" badges all derived at query time
-- [ ] **E6.** Verify Plan View at 375px viewport
-- [ ] **E7.** Build read-only "first dashboard" placeholder that shows: today's prescribed workout (read-only — no log button yet), weeks-to-race counter, link to Plan View. v0.7 will add logging.
+- [x] **E1.** Write Convex action `convex/actions/planGeneration.ts`: composes system prompt, calls Anthropic with tool-use (`submit_plan`), validates with Zod, persists weeks/workouts/exercises rows in a single transaction.
+- [x] **E2.** Build loading state during plan gen (intentional copy: "Coach is reviewing your inputs… designing your weeks… finalizing your first session"). Set Convex action timeout to 60s.
+- [x] **E3.** Handle errors: Zod failure → retry once with stricter prompt addition → if still fails, surface "Coach is having an off day" UI; do not persist invalid data.
+- [x] **E4.** Build Plan View screen: list all weeks with phase badges; expandable per-week showing reasoning, coach note, all workouts with exercises
+- [x] **E5.** Highlight current week (date-derived from `weeks.startDate` vs today); "upcoming" / "current" / "done" badges all derived at query time
+- [x] **E6.** Verify Plan View at 375px viewport
+- [x] **E7.** Build read-only "first dashboard" placeholder that shows: today's prescribed workout (read-only — no log button yet), weeks-to-race counter, link to Plan View. v0.7 will add logging.
 
 ### Phase F — v0.5 ship
 - [ ] **F1.** Run all PRD §16 v0.5 acceptance test cases manually:

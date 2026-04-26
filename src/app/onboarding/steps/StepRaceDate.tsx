@@ -8,7 +8,7 @@ type Validation =
   | { valid: false; error: string }
   | { valid: true; path: RaceDatePath; warning?: string };
 
-const WEEK_PRESETS = [12, 16, 20, 24] as const;
+const WEEK_PRESETS = [12, 16, 20, 24, 52] as const;
 
 function targetDateFromWeeks(weeks: number): string {
   const d = new Date();

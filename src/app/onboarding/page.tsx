@@ -57,6 +57,7 @@ export default function OnboardingPage() {
         return;
       }
       if (profile?.onboardingStep !== undefined) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setCurrentStep(profile.onboardingStep);
       }
       setInitialized(true);
@@ -71,6 +72,7 @@ export default function OnboardingPage() {
 
   // Placeholder steps (C3–C11) can always advance
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (currentStep !== 0) setCanAdvance(true);
     // Step 0 validity is managed by StepRaceDate via onValidChange
   }, [currentStep]);

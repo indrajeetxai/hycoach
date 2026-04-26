@@ -5,7 +5,7 @@ export type OnboardingData = {
   raceDate?: string;
   raceDatePath?: RaceDatePath;
   registrationStatus?: "registered" | "considering";
-  selectedWeeks?: 12 | 16 | 20 | 24;
+  selectedWeeks?: 12 | 16 | 20 | 24 | 52;
   // C3
   division?: "singles";
   // C4
