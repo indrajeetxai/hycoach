@@ -9,6 +9,9 @@
 
 ## 0. Changelog
 
+### v3.1.2 — 2026-04-26
+- **Plan generation reliability fix.** Model was exhausting its 16k output budget on prose preamble and emitting an empty `submit_plan` tool input (`stop_reason: "max_tokens"`, `weeks: undefined`), causing Zod validation to fail twice and surface "Coach is having an off day" to the user. Added an explicit `<output_protocol>` block at the top of `prompts/plan-generation.md` requiring tool-only output with no prose. Tightened action runtime: `ACTION_TIMEOUT_MS = 300_000` (was 180s, originally 60s in spec — empirically not achievable for full plans), Anthropic SDK `maxRetries: 0` to prevent silent retry cascades that previously hit Convex's 10-min platform cap. Added safe diagnostic logging on parse failure (stop_reason, usage, content block types, input keys, weeks shape — never values or user data). PRD §9.2 model strings aligned to current code (Sonnet 4.6, Haiku 4.5-20251001). PRD §9.3 / §14 / §16 acceptance timing updated from "<30s" to empirical 2–5 minutes for plan generation. CHECKLIST E2 description updated to reflect the new timeout reality.
+
 ### v3.1.1 — 2026-04-26
 - Refined onboarding step 1 "considering" UX to a mutually-exclusive segmented choice (registered vs not-registered). Selected window chip now shows in green; switching modes clears the other side's state. No schema or prompt change vs v3.1.
 
@@ -603,21 +606,23 @@ Each call is wrapped in a Convex action that:
 
 | Call | Model | When | Notes |
 |---|---|---|---|
-| Reality Check | claude-sonnet-4-5 | Onboarding, after math computed | Tone + math sensitive |
-| Plan Generation | claude-sonnet-4-5 | After Reality Check resolved | Hardest reasoning; tool-use forces schema |
-| Plan Regeneration | claude-sonnet-4-5 | User-triggered, eligibility-gated | Same call as Plan Generation |
-| Weekly Recap | claude-haiku-4-5 | First login of new week | Short output; cost-sensitive at scale |
-| Race Reflection | claude-haiku-4-5 | After race result logged | Short, voice-driven |
+| Reality Check | claude-sonnet-4-6 | Onboarding, after math computed | Tone + math sensitive |
+| Plan Generation | claude-sonnet-4-6 | After Reality Check resolved | Hardest reasoning; tool-use forces schema |
+| Plan Regeneration | claude-sonnet-4-6 | User-triggered, eligibility-gated | Same call as Plan Generation |
+| Weekly Recap | claude-haiku-4-5-20251001 | First login of new week | Short output; cost-sensitive at scale |
+| Race Reflection | claude-haiku-4-5-20251001 | After race result logged | Short, voice-driven |
 
-(Verify exact model strings in Anthropic docs at build time; these change.)
+(Strings are aligned to code as of v3.1.2. Re-verify against Anthropic docs at each model upgrade; these change.)
 
 ### 9.3 Structured output handling
 
 - All structured-output calls use **Anthropic tool-use** with `tool_choice: {type: "tool", name: "submit_X"}` and a JSON Schema for the input
 - **Server-side Zod validation** of the tool-use input before persisting
+- The call's prompt MUST instruct the model to return **tool-use only** — no prose, preamble, or commentary before, after, or alongside the tool call. Prose preamble is the dominant cause of empty/truncated tool inputs (the model exhausts `max_tokens` on text and then emits `{}` as tool input). See `prompts/plan-generation.md` `<output_protocol>` block for the canonical wording.
 - On Zod validation failure: retry once with stricter prompt addition (e.g., "Your previous output failed validation: <error>. Output exactly the schema.")
-- On second failure: log error, return user-facing error UX ("Coach is having an off day. Try again in a moment."), do not persist
-- Streaming is **not** used in v1 — non-streaming with intentional loading copy is fine for 20-30s waits
+- If the API response has `stop_reason: "max_tokens"` and Zod fails: log distinctly as an output-budget overflow ("Plan generation exceeded output budget before valid tool input"). The retry path runs as normal but operators should treat this as a prompt-engineering signal, not a token-cap signal — bumping `max_tokens` does not help if the model is writing prose.
+- On second failure: log structural metadata (stop_reason, usage, content block types, input keys, shape of `weeks` — never values or user data), return user-facing error UX ("Coach is having an off day. Try again in a moment."), do not persist
+- Streaming is **not** used in v1 — non-streaming with intentional loading copy is acceptable for 2–5 minute waits (Plan Generation is the slowest; Reality Check is ~5–15s)
 
 ### 9.4 Rate limiting
 
@@ -801,7 +806,7 @@ POSTHOG_API_KEY in `.env.local`, also injected into Vercel env vars.
 - User abandons race → status = abandoned, all data preserved
 - User races, then sets up next race → existing plan archived, new race + plan created
 - Two browser tabs trying to recalibrate same week → idempotency on `weeks.recalibrated` prevents double-run
-- Convex action timeout on slow Claude call → set Convex action timeout to 60s; retry on transient error
+- Convex action timeout on slow Claude call → empirically Plan Generation requires up to ~3–4 minutes (Sonnet 4.6 emits ~83 tok/s; full plans use most of the 16k output budget). Set the Anthropic SDK `timeout` to **300s** and the SDK `maxRetries: 0` to prevent silent retry cascades that can exceed Convex's ~10-min platform cap. Application-level retry on Zod validation failure stays at exactly one attempt with a stricter user-message suffix.
 
 ---
 
@@ -809,7 +814,7 @@ POSTHOG_API_KEY in `.env.local`, also injected into Vercel env vars.
 
 - All flows in §4 work end-to-end without errors
 - Reality Check correctly pushes back on infeasible goals (test cases in §16)
-- Plan generation succeeds for representative profiles in <30s
+- Plan generation succeeds for representative profiles within the 300s SDK budget (typical 2–4 minutes for Sonnet 4.6; the loading screen copy in `/plan` is calibrated for this wait)
 - Weekly auto-recalibration produces a meaningful adjustment after a deliberately-missed simulated week (use seed data)
 - Mobile responsive end-to-end on iPhone SE viewport (375px wide)
 - Light + dark mode visually consistent across all screens

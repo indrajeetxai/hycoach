@@ -66,8 +66,8 @@ When all items in a release are done, ship the release, then move to the next re
 
 ### Phase E — Plan Generation + Plan View
 - [x] **E1.** Write Convex action `convex/actions/planGeneration.ts`: composes system prompt, calls Anthropic with tool-use (`submit_plan`), validates with Zod, persists weeks/workouts/exercises rows in a single transaction.
-- [x] **E2.** Build loading state during plan gen (intentional copy: "Coach is reviewing your inputs… designing your weeks… finalizing your first session"). Set Convex action timeout to 60s.
-- [x] **E3.** Handle errors: Zod failure → retry once with stricter prompt addition → if still fails, surface "Coach is having an off day" UI; do not persist invalid data.
+- [x] **E2.** Build loading state during plan gen (intentional copy: "Coach is reviewing your inputs… designing your weeks… finalizing your first session"). Configure Anthropic SDK `timeout: 300_000` and `maxRetries: 0` (prevents silent SDK retry cascades that previously hit Convex's ~10-min platform cap). PRD's original "60s" spec is empirically not achievable for full Sonnet 4.6 plan generations (~2–4 min typical) and was revised in v3.1.2.
+- [x] **E3.** Handle errors: Zod failure → retry once with stricter prompt addition → if still fails, surface "Coach is having an off day" UI; do not persist invalid data. On `stop_reason: "max_tokens"` + empty/missing `weeks`, log a distinct error message ("Plan generation exceeded output budget before valid tool input") so the truncation case is visible in Convex logs without raising `max_tokens` blindly — the prompt's `<output_protocol>` block is the actual lever (see `prompts/plan-generation.md`).
 - [x] **E4.** Build Plan View screen: list all weeks with phase badges; expandable per-week showing reasoning, coach note, all workouts with exercises
 - [x] **E5.** Highlight current week (date-derived from `weeks.startDate` vs today); "upcoming" / "current" / "done" badges all derived at query time
 - [x] **E6.** Verify Plan View at 375px viewport

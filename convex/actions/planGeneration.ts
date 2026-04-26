@@ -263,6 +263,14 @@ export const runPlanGeneration = action({
       if (parsed.success) {
         return { ok: true as const, data: parsed.data };
       }
+      // If the model exhausted its output budget on prose before serializing
+      // the tool input, surface that distinctly in the logs. The Zod failure
+      // below will still record the structural metadata.
+      if (resp.stop_reason === "max_tokens") {
+        console.error(
+          "[planGeneration] Plan generation exceeded output budget before valid tool input.",
+        );
+      }
       // Log the SHAPE of the validation failure for debugging.
       // We log structural metadata only — never values, plan content, or
       // user race/profile data. Schema field names (e.g. "weekNumber",
@@ -299,6 +307,7 @@ export const runPlanGeneration = action({
         JSON.stringify({
           stop_reason: resp.stop_reason,
           usage: resp.usage,
+          content_block_types: resp.content.map((b) => b.type),
           inputKeys,
           weeksTypeof,
           weeksIsArray,

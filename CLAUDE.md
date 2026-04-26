@@ -66,12 +66,12 @@ npm run sync-prompts    # run manually the first time before dev
 - **Auth:** Convex Auth + Google OAuth
 - **AI:** Anthropic Claude API — called from Convex actions only, never from the browser
 
-| Call | Model | Max tokens |
-|---|---|---|
-| Reality Check | `claude-sonnet-4-5` | 1500 |
-| Plan Generation / Regeneration | `claude-sonnet-4-5` | 16000 |
-| Weekly Recap | `claude-haiku-4-5` | 400 |
-| Race Reflection | `claude-haiku-4-5` | 500 |
+| Call | Model | Max tokens | SDK timeout | SDK maxRetries |
+|---|---|---|---|---|
+| Reality Check | `claude-sonnet-4-6` | 1500 | 60s (default) | default |
+| Plan Generation / Regeneration | `claude-sonnet-4-6` | 16000 | **300s** | **0** (see Prompt system) |
+| Weekly Recap | `claude-haiku-4-5-20251001` | 400 | default | default |
+| Race Reflection | `claude-haiku-4-5-20251001` | 500 | default | default |
 
 - **Charts:** Recharts (v1.0+)
 - **Analytics:** PostHog (v1.1)
@@ -103,6 +103,8 @@ npm run sync-prompts    # run manually the first time before dev
 ```
 
 For Reality Check and Plan Generation, force structured output via `tool_choice = { type: "tool", name: "submit_reality_check" }` / `submit_plan`. See `prompts/prompt-composition.md` for the full tool input schemas.
+
+**Plan Generation must use tool-only output — no prose before `submit_plan`.** The first content block of the model's response must be the `submit_plan` tool_use; any text/preamble/markdown before it eats the 16k output budget and produces an empty tool input (we observed this in v3.1.2). The canonical wording lives in `prompts/plan-generation.md` under `<output_protocol>`. Pair this with SDK `maxRetries: 0` so timeouts fail fast rather than cascading past Convex's ~10-min platform cap. Application-level Zod retry stays at one attempt.
 
 ---
 
