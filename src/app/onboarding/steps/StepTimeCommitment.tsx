@@ -1,12 +1,10 @@
 "use client";
 
 import { useEffect } from "react";
-import { Slider } from "@/components/ui/slider";
 import { cn } from "@/lib/utils";
 import type { StepProps } from "../types";
 
-const DAYS_MIN = 2;
-const DAYS_MAX = 7;
+const DAY_OPTIONS = [2, 3, 4, 5, 6, 7] as const;
 const DAYS_DEFAULT = 4;
 
 const MINUTE_OPTIONS = [30, 45, 60, 90, 120] as const;
@@ -37,25 +35,27 @@ export function StepTimeCommitment({ formData, updateFormData, onValidChange }: 
 
       {/* Days per week */}
       <div className="flex flex-col gap-3">
-        <div className="flex items-baseline justify-between">
-          <label className="text-sm font-medium">Days per week</label>
-          <span className="text-[22px] font-semibold tabular-nums">
-            {days}
-            <span className="ml-1 text-[13px] font-normal text-muted-foreground">days</span>
-          </span>
-        </div>
-        <Slider
-          min={DAYS_MIN}
-          max={DAYS_MAX}
-          step={1}
-          value={[days]}
-          onValueChange={(vals) =>
-            updateFormData({ weeklyCommitmentDays: (vals as number[])[0] })
-          }
-        />
-        <div className="flex justify-between text-[11px] text-muted-foreground">
-          <span>{DAYS_MIN} days</span>
-          <span>{DAYS_MAX} days</span>
+        <label className="text-sm font-medium">Days per week</label>
+        <div className="grid grid-cols-6 gap-2">
+          {DAY_OPTIONS.map((d) => {
+            const selected = days === d;
+            return (
+              <button
+                key={d}
+                type="button"
+                onClick={() => updateFormData({ weeklyCommitmentDays: d })}
+                className={cn(
+                  "min-h-[44px] rounded-md border px-1 text-sm font-medium tabular-nums transition-colors",
+                  selected
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-border bg-background hover:bg-muted",
+                )}
+                aria-pressed={selected}
+              >
+                {d}
+              </button>
+            );
+          })}
         </div>
       </div>
 
