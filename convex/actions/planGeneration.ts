@@ -13,7 +13,10 @@ import { PLAN_GENERATION } from "../_prompts";
 const MODEL_PLAN_GENERATION = "claude-sonnet-4-6";
 const MAX_TOKENS_PLAN_GENERATION = 16000;
 const MAX_PLAN_WEEKS = 24; // PRD §4.1 cap for >52 wks out
-const ACTION_TIMEOUT_MS = 60_000; // PRD: 60s timeout per call
+// PRD initially specified 60s, but empirically a 16k-token plan takes
+// 75–250s to generate (Sonnet 4.6 streams ~40–80 tok/s). 180s covers ~99%
+// of plans without holding a stuck connection too long.
+const ACTION_TIMEOUT_MS = 180_000;
 
 const TOOL_DEFINITION = {
   name: "submit_plan",
