@@ -47,7 +47,7 @@ export function StepTimeCommitment({ formData, updateFormData, onValidChange }: 
                 className={cn(
                   "min-h-[44px] rounded-md border px-1 text-sm font-medium tabular-nums transition-colors",
                   selected
-                    ? "border-primary bg-primary text-primary-foreground"
+                    ? "border-green-400 bg-green-200 text-green-900"
                     : "border-border bg-background hover:bg-muted",
                 )}
                 aria-pressed={selected}
@@ -73,7 +73,7 @@ export function StepTimeCommitment({ formData, updateFormData, onValidChange }: 
                 className={cn(
                   "min-h-[44px] rounded-md border px-1 text-sm font-medium tabular-nums transition-colors",
                   selected
-                    ? "border-primary bg-primary text-primary-foreground"
+                    ? "border-green-400 bg-green-200 text-green-900"
                     : "border-border bg-background hover:bg-muted",
                 )}
                 aria-pressed={selected}
