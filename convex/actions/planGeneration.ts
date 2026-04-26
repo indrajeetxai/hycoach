@@ -264,13 +264,31 @@ export const runPlanGeneration = action({
         return { ok: true as const, data: parsed.data };
       }
       // Log the SHAPE of the validation failure for debugging.
-      // - Issue paths/codes/messages — describe the model's mistake, not the
-      //   user's data.
-      // - weekCount — sanity-check whether the response was truncated.
-      // We never log toolUse.input itself (contains user race/profile context).
-      const input = toolUse.input as { weeks?: unknown[] } | undefined;
-      const weekCount =
-        input && Array.isArray(input.weeks) ? input.weeks.length : null;
+      // We log structural metadata only — never values, plan content, or
+      // user race/profile data. Schema field names (e.g. "weekNumber",
+      // "phase") and Zod issue messages describe the model's mistakes,
+      // not user inputs, so they are safe to log.
+      const input = toolUse.input;
+      const inputObj =
+        input && typeof input === "object" && !Array.isArray(input)
+          ? (input as Record<string, unknown>)
+          : null;
+      const inputKeys = inputObj ? Object.keys(inputObj) : null;
+      const weeksRaw = inputObj?.weeks;
+      const weeksIsArray = Array.isArray(weeksRaw);
+      const weeksTypeof = typeof weeksRaw;
+      const weeksLength = weeksIsArray
+        ? (weeksRaw as unknown[]).length
+        : null;
+      const firstWeekRaw = weeksIsArray
+        ? (weeksRaw as unknown[])[0]
+        : undefined;
+      const firstWeekKeys =
+        firstWeekRaw &&
+        typeof firstWeekRaw === "object" &&
+        !Array.isArray(firstWeekRaw)
+          ? Object.keys(firstWeekRaw as Record<string, unknown>)
+          : null;
       const issueSummary = parsed.error.issues.slice(0, 20).map((i) => ({
         path: i.path.join("."),
         code: i.code,
@@ -279,8 +297,14 @@ export const runPlanGeneration = action({
       console.warn(
         "[planGeneration] Zod parse failed",
         JSON.stringify({
+          stop_reason: resp.stop_reason,
+          usage: resp.usage,
+          inputKeys,
+          weeksTypeof,
+          weeksIsArray,
+          weeksLength,
+          firstWeekKeys,
           totalIssues: parsed.error.issues.length,
-          weekCount,
           issues: issueSummary,
         }),
       );
