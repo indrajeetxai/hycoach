@@ -20,14 +20,13 @@ const DEFAULT_EQUIPMENT: Equipment = {
   rower: false,
 };
 
-export function StepEquipment({ formData, updateFormData, onValidChange }: StepProps) {
+export function StepEquipment({ formData, updateFormData }: StepProps) {
   const equipment = formData.equipmentAccess ?? DEFAULT_EQUIPMENT;
 
   useEffect(() => {
     if (!formData.equipmentAccess) {
       updateFormData({ equipmentAccess: DEFAULT_EQUIPMENT });
     }
-    onValidChange(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

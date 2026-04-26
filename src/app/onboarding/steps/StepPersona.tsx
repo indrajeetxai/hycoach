@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect } from "react";
 import type { StepProps } from "../types";
 
 type Persona = "honest" | "encourager" | "operator";
@@ -33,17 +32,11 @@ const OPTIONS: {
   },
 ];
 
-export function StepPersona({ formData, updateFormData, onValidChange }: StepProps) {
+export function StepPersona({ formData, updateFormData }: StepProps) {
   const selected = formData.coachPersona;
-
-  useEffect(() => {
-    onValidChange(!!formData.coachPersona);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   function select(value: Persona) {
     updateFormData({ coachPersona: value });
-    onValidChange(true);
   }
 
   return (

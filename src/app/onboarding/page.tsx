@@ -15,8 +15,11 @@ import { StepAssessment } from "./steps/StepAssessment";
 import { StepEquipment } from "./steps/StepEquipment";
 import { StepPersona } from "./steps/StepPersona";
 import type { OnboardingData } from "./types";
-
-const TOTAL_STEPS = 9;
+import {
+  TOTAL_STEPS,
+  firstIncompleteStep,
+  isStepComplete,
+} from "./validation";
 
 const STEP_LABELS = [
   "Race date",
@@ -35,34 +38,33 @@ export default function OnboardingPage() {
   const { isAuthenticated, isLoading } = useConvexAuth();
   const profile = useQuery(api.profiles.getProfile);
   const setOnboardingStep = useMutation(api.profiles.setOnboardingStep);
-
   const completeOnboarding = useMutation(api.profiles.completeOnboarding);
 
   const [currentStep, setCurrentStep] = useState(0);
   const [initialized, setInitialized] = useState(false);
   const [formData, setFormData] = useState<Partial<OnboardingData>>({});
-  const [canAdvance, setCanAdvance] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  // Resume from last saved step — or redirect if onboarding is already complete
+  // Resume from last saved step — clamped so the user never lands on a step
+  // they can't escape (formData is empty after refresh, so usually clamps to 0).
   useEffect(() => {
     if (profile === undefined) return;
-    if (!initialized) {
-      if (
-        profile?.onboardingStep !== undefined &&
-        profile.onboardingStep >= TOTAL_STEPS
-      ) {
-        router.push("/reality-check");
-        return;
-      }
-      if (profile?.onboardingStep !== undefined) {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        setCurrentStep(profile.onboardingStep);
-      }
-      setInitialized(true);
+    if (initialized) return;
+    if (
+      profile?.onboardingStep !== undefined &&
+      profile.onboardingStep >= TOTAL_STEPS
+    ) {
+      router.push("/reality-check");
+      return;
     }
-  }, [profile, initialized, router]);
+    const savedStep = profile?.onboardingStep ?? 0;
+    const incomplete = firstIncompleteStep(formData);
+    const startAt = incomplete !== null ? Math.min(savedStep, incomplete) : savedStep;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setCurrentStep(startAt);
+    setInitialized(true);
+  }, [profile, initialized, router, formData]);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -70,15 +72,9 @@ export default function OnboardingPage() {
     }
   }, [isAuthenticated, isLoading, router]);
 
-  // Placeholder steps (C3–C11) can always advance
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (currentStep !== 0) setCanAdvance(true);
-    // Step 0 validity is managed by StepRaceDate via onValidChange
-  }, [currentStep]);
-
   const updateFormData = useCallback((update: Partial<OnboardingData>) => {
     setFormData((prev) => ({ ...prev, ...update }));
+    setSubmitError(null);
   }, []);
 
   if (isLoading || profile === undefined) {
@@ -104,18 +100,29 @@ export default function OnboardingPage() {
 
   const progress = ((currentStep + 1) / TOTAL_STEPS) * 100;
   const isLastStep = currentStep === TOTAL_STEPS - 1;
+  const canAdvance = isStepComplete(currentStep, formData) && !submitting;
 
   async function handleFinish() {
+    const incomplete = firstIncompleteStep(formData);
+    if (incomplete !== null) {
+      setSubmitError(
+        `Please complete step ${incomplete + 1}: ${STEP_LABELS[incomplete]}.`,
+      );
+      setCurrentStep(incomplete);
+      void setOnboardingStep({ step: incomplete });
+      return;
+    }
+
+    // Type-narrow: firstIncompleteStep === null guarantees these are present
     if (
       !formData.raceDate ||
       !formData.goalType ||
-      !formData.fitnessRating ||
-      !formData.coachPersona ||
       formData.weeklyCommitmentDays === undefined ||
       formData.minutesPerSession === undefined ||
-      !formData.equipmentAccess
+      !formData.fitnessRating ||
+      !formData.equipmentAccess ||
+      !formData.coachPersona
     ) {
-      setSubmitError("Some answers are missing. Go back and complete every step.");
       return;
     }
 
@@ -142,7 +149,7 @@ export default function OnboardingPage() {
   }
 
   async function handleNext() {
-    if (!canAdvance || submitting) return;
+    if (!canAdvance) return;
 
     if (isLastStep) {
       await handleFinish();
@@ -155,10 +162,11 @@ export default function OnboardingPage() {
         ? 7
         : Math.min(currentStep + 1, TOTAL_STEPS - 1);
     setCurrentStep(next);
-    await setOnboardingStep({ step: next });
+    void setOnboardingStep({ step: next });
   }
 
   function handleBack() {
+    setSubmitError(null);
     setCurrentStep((s) => {
       // When going back from equipment (7) and assessment was skipped, return to depth question (5)
       if (s === 7 && formData.adaptiveDepth === "skip") return 5;
@@ -194,7 +202,6 @@ export default function OnboardingPage() {
             step={currentStep}
             formData={formData}
             updateFormData={updateFormData}
-            onValidChange={setCanAdvance}
           />
         </div>
 
@@ -216,7 +223,7 @@ export default function OnboardingPage() {
           )}
           <Button
             className="min-h-[44px] px-8"
-            disabled={!canAdvance || submitting}
+            disabled={!canAdvance}
             onClick={() => void handleNext()}
           >
             {submitting
@@ -236,99 +243,18 @@ type StepContentProps = {
   step: number;
   formData: Partial<OnboardingData>;
   updateFormData: (update: Partial<OnboardingData>) => void;
-  onValidChange: (valid: boolean) => void;
 };
 
-function StepContent({ step, formData, updateFormData, onValidChange }: StepContentProps) {
-  if (step === 0) {
-    return (
-      <StepRaceDate
-        formData={formData}
-        updateFormData={updateFormData}
-        onValidChange={onValidChange}
-      />
-    );
-  }
-
-  if (step === 1) {
-    return (
-      <StepDivision
-        formData={formData}
-        updateFormData={updateFormData}
-        onValidChange={onValidChange}
-      />
-    );
-  }
-
-  if (step === 2) {
-    return (
-      <StepGoal
-        formData={formData}
-        updateFormData={updateFormData}
-        onValidChange={onValidChange}
-      />
-    );
-  }
-
-  if (step === 3) {
-    return (
-      <StepTimeCommitment
-        formData={formData}
-        updateFormData={updateFormData}
-        onValidChange={onValidChange}
-      />
-    );
-  }
-
-  if (step === 4) {
-    return (
-      <StepFitness
-        formData={formData}
-        updateFormData={updateFormData}
-        onValidChange={onValidChange}
-      />
-    );
-  }
-
-  if (step === 5) {
-    return (
-      <StepAdaptiveDepth
-        formData={formData}
-        updateFormData={updateFormData}
-        onValidChange={onValidChange}
-      />
-    );
-  }
-
-  if (step === 6) {
-    return (
-      <StepAssessment
-        formData={formData}
-        updateFormData={updateFormData}
-        onValidChange={onValidChange}
-      />
-    );
-  }
-
-  if (step === 7) {
-    return (
-      <StepEquipment
-        formData={formData}
-        updateFormData={updateFormData}
-        onValidChange={onValidChange}
-      />
-    );
-  }
-
-  if (step === 8) {
-    return (
-      <StepPersona
-        formData={formData}
-        updateFormData={updateFormData}
-        onValidChange={onValidChange}
-      />
-    );
-  }
-
+function StepContent({ step, formData, updateFormData }: StepContentProps) {
+  const props = { formData, updateFormData };
+  if (step === 0) return <StepRaceDate {...props} />;
+  if (step === 1) return <StepDivision {...props} />;
+  if (step === 2) return <StepGoal {...props} />;
+  if (step === 3) return <StepTimeCommitment {...props} />;
+  if (step === 4) return <StepFitness {...props} />;
+  if (step === 5) return <StepAdaptiveDepth {...props} />;
+  if (step === 6) return <StepAssessment {...props} />;
+  if (step === 7) return <StepEquipment {...props} />;
+  if (step === 8) return <StepPersona {...props} />;
   return null;
 }

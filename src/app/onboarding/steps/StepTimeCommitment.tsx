@@ -10,17 +10,16 @@ const DAYS_DEFAULT = 4;
 const MINUTE_OPTIONS = [30, 45, 60, 90, 120] as const;
 const MINS_DEFAULT = 60;
 
-export function StepTimeCommitment({ formData, updateFormData, onValidChange }: StepProps) {
+export function StepTimeCommitment({ formData, updateFormData }: StepProps) {
   const days = formData.weeklyCommitmentDays ?? DAYS_DEFAULT;
   const mins = formData.minutesPerSession ?? MINS_DEFAULT;
 
-  // Seed defaults on mount and mark step always valid
+  // Seed defaults on mount
   useEffect(() => {
     updateFormData({
       weeklyCommitmentDays: formData.weeklyCommitmentDays ?? DAYS_DEFAULT,
       minutesPerSession: formData.minutesPerSession ?? MINS_DEFAULT,
     });
-    onValidChange(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

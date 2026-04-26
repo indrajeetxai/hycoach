@@ -5,24 +5,20 @@ import type { StepProps } from "../types";
 
 type Depth = "detailed" | "skip";
 
-export function StepAdaptiveDepth({ formData, updateFormData, onValidChange }: StepProps) {
+export function StepAdaptiveDepth({ formData, updateFormData }: StepProps) {
   const selected = formData.adaptiveDepth;
   const isShortPath = formData.raceDatePath === "short";
 
-  // Short path: force detailed, mark valid immediately
+  // Short path: force detailed
   useEffect(() => {
     if (isShortPath) {
       updateFormData({ adaptiveDepth: "detailed" });
-      onValidChange(true);
-    } else {
-      onValidChange(!!formData.adaptiveDepth);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function select(value: Depth) {
     updateFormData({ adaptiveDepth: value });
-    onValidChange(true);
   }
 
   return (

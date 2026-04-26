@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect } from "react";
 import type { StepProps } from "../types";
 
 type FitnessRating = "beginner" | "intermediate" | "advanced";
@@ -23,17 +22,11 @@ const OPTIONS: { value: FitnessRating; label: string; description: string }[] = 
   },
 ];
 
-export function StepFitness({ formData, updateFormData, onValidChange }: StepProps) {
+export function StepFitness({ formData, updateFormData }: StepProps) {
   const selected = formData.fitnessRating;
-
-  useEffect(() => {
-    onValidChange(!!formData.fitnessRating);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   function select(value: FitnessRating) {
     updateFormData({ fitnessRating: value });
-    onValidChange(true);
   }
 
   return (

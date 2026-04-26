@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import type { OnboardingData, StepProps } from "../types";
 
@@ -14,7 +14,7 @@ function useTimeState(totalSec: number | undefined) {
   };
 }
 
-export function StepAssessment({ formData, updateFormData, onValidChange }: StepProps) {
+export function StepAssessment({ formData, updateFormData }: StepProps) {
   const a = formData.detailedAssessment ?? {};
 
   // 5K pace (mm:ss /km)
@@ -29,12 +29,6 @@ export function StepAssessment({ formData, updateFormData, onValidChange }: Step
 
   // Deadlift opt-out
   const [dontLift, setDontLift] = useState(!a.deadliftKg);
-
-  // Always valid — all fields optional
-  useEffect(() => {
-    onValidChange(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   function patch(update: Partial<Assessment>) {
     updateFormData({ detailedAssessment: { ...a, ...update } });

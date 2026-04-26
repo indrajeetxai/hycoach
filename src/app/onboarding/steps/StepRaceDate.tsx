@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import type { RaceDatePath, StepProps } from "../types";
 
@@ -47,18 +46,11 @@ function validate(dateStr: string): Validation {
 
 const todayIso = new Date().toISOString().split("T")[0];
 
-export function StepRaceDate({ formData, updateFormData, onValidChange }: StepProps) {
+export function StepRaceDate({ formData, updateFormData }: StepProps) {
   const status = formData.registrationStatus ?? "registered";
   const dateStr = formData.raceDate ?? "";
   const selectedWeeks = formData.selectedWeeks;
   const result: Validation | null = dateStr ? validate(dateStr) : null;
-
-  // Initialise validity on mount (handles Back-navigation to this step)
-  useEffect(() => {
-    onValidChange(!!result?.valid);
-    // onValidChange is setCanAdvance from useState — stable reference
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   function selectMode(next: "registered" | "considering") {
     if (next === status) return;
@@ -68,7 +60,6 @@ export function StepRaceDate({ formData, updateFormData, onValidChange }: StepPr
       raceDatePath: undefined,
       selectedWeeks: undefined,
     });
-    onValidChange(false);
   }
 
   function handleDateChange(value: string) {
@@ -79,7 +70,6 @@ export function StepRaceDate({ formData, updateFormData, onValidChange }: StepPr
       registrationStatus: "registered",
       selectedWeeks: undefined,
     });
-    onValidChange(!!r?.valid);
   }
 
   function handleChipClick(w: (typeof WEEK_PRESETS)[number]) {
@@ -91,7 +81,6 @@ export function StepRaceDate({ formData, updateFormData, onValidChange }: StepPr
       registrationStatus: "considering",
       selectedWeeks: w,
     });
-    onValidChange(r.valid);
   }
 
   return (

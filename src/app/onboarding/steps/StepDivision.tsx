@@ -3,11 +3,10 @@
 import { useEffect } from "react";
 import type { StepProps } from "../types";
 
-export function StepDivision({ updateFormData, onValidChange }: StepProps) {
+export function StepDivision({ updateFormData }: StepProps) {
   // Singles is the only available option — auto-select on mount
   useEffect(() => {
     updateFormData({ division: "singles" });
-    onValidChange(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

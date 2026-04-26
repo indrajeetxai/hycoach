@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useState } from "react";
 import { Input } from "@/components/ui/input";
 import type { StepProps } from "../types";
 
@@ -19,7 +19,7 @@ function isTimeValid(h: string, m: string, s: string): boolean {
   return toSeconds(h, m, s) > 0;
 }
 
-export function StepGoal({ formData, updateFormData, onValidChange }: StepProps) {
+export function StepGoal({ formData, updateFormData }: StepProps) {
   const goalType = formData.goalType;
 
   const [hours, setHours] = useState(() => {
@@ -35,28 +35,11 @@ export function StepGoal({ formData, updateFormData, onValidChange }: StepProps)
     return String(formData.targetTimeSec % 60);
   });
 
-  // Initialise validity from existing formData on mount / Back-navigation
-  useEffect(() => {
-    if (formData.goalType === "finish") {
-      onValidChange(true);
-    } else if (formData.goalType === "target" && formData.targetTimeSec) {
-      onValidChange(true);
-    } else {
-      onValidChange(false);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   function selectGoalType(type: GoalType) {
     updateFormData({
       goalType: type,
       targetTimeSec: type === "finish" ? undefined : formData.targetTimeSec,
     });
-    if (type === "finish") {
-      onValidChange(true);
-    } else {
-      onValidChange(isTimeValid(hours, minutes, seconds));
-    }
   }
 
   function handleTimeChange(field: "hours" | "minutes" | "seconds", value: string) {
@@ -70,7 +53,6 @@ export function StepGoal({ formData, updateFormData, onValidChange }: StepProps)
 
     const valid = isTimeValid(h, m, s);
     updateFormData({ targetTimeSec: valid ? toSeconds(h, m, s) : undefined });
-    onValidChange(valid);
   }
 
   const showRangeError =

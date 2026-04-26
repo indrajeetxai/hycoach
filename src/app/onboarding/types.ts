@@ -43,5 +43,4 @@ export type OnboardingData = {
 export type StepProps = {
   formData: Partial<OnboardingData>;
   updateFormData: (update: Partial<OnboardingData>) => void;
-  onValidChange: (valid: boolean) => void;
 };
