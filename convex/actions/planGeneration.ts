@@ -13,10 +13,11 @@ import { PLAN_GENERATION } from "../_prompts";
 const MODEL_PLAN_GENERATION = "claude-sonnet-4-6";
 const MAX_TOKENS_PLAN_GENERATION = 16000;
 const MAX_PLAN_WEEKS = 24; // PRD §4.1 cap for >52 wks out
-// PRD initially specified 60s, but empirically a 16k-token plan takes
-// 75–250s to generate (Sonnet 4.6 streams ~40–80 tok/s). 180s covers ~99%
-// of plans without holding a stuck connection too long.
-const ACTION_TIMEOUT_MS = 180_000;
+// Empirically Sonnet 4.6 takes ~187s for a 16k-token plan (curl-measured at
+// ~83 tok/s with 15.5k output tokens). 300s gives ~60% buffer for slower
+// variants or longer prompts. Note: PRD §11 / checklist E2 originally said
+// "60s" — that's not achievable for full plans; spec needs revising.
+const ACTION_TIMEOUT_MS = 300_000;
 
 const TOOL_DEFINITION = {
   name: "submit_plan",
@@ -226,7 +227,14 @@ export const runPlanGeneration = action({
       `Plan starts on the upcoming Monday. dayOfWeek 0 = Monday.`,
     ].join("\n");
 
-    const anthropic = new Anthropic({ apiKey, timeout: ACTION_TIMEOUT_MS });
+    // maxRetries: 0 — SDK auto-retries on timeout were cascading 180s × 3 ≈ 540s,
+    // exceeding Convex's 10-min platform cap. We fail fast instead and rely on
+    // the application-level retry below for malformed responses.
+    const anthropic = new Anthropic({
+      apiKey,
+      timeout: ACTION_TIMEOUT_MS,
+      maxRetries: 0,
+    });
 
     async function callOnce(userMsg: string) {
       const resp = await anthropic.messages.create({
@@ -239,15 +247,44 @@ export const runPlanGeneration = action({
       });
       const toolUse = resp.content.find((b) => b.type === "tool_use");
       if (!toolUse || toolUse.type !== "tool_use") {
+        console.warn(
+          "[planGeneration] Model did not return tool_use block",
+          JSON.stringify({
+            stop_reason: resp.stop_reason,
+            content_block_types: resp.content.map((b) => b.type),
+          }),
+        );
         return {
           ok: false as const,
           error: "Model did not return a tool_use block.",
         };
       }
       const parsed = planOutputSchema.safeParse(toolUse.input);
-      return parsed.success
-        ? { ok: true as const, data: parsed.data }
-        : { ok: false as const, error: parsed.error.message };
+      if (parsed.success) {
+        return { ok: true as const, data: parsed.data };
+      }
+      // Log the SHAPE of the validation failure for debugging.
+      // - Issue paths/codes/messages — describe the model's mistake, not the
+      //   user's data.
+      // - weekCount — sanity-check whether the response was truncated.
+      // We never log toolUse.input itself (contains user race/profile context).
+      const input = toolUse.input as { weeks?: unknown[] } | undefined;
+      const weekCount =
+        input && Array.isArray(input.weeks) ? input.weeks.length : null;
+      const issueSummary = parsed.error.issues.slice(0, 20).map((i) => ({
+        path: i.path.join("."),
+        code: i.code,
+        message: i.message,
+      }));
+      console.warn(
+        "[planGeneration] Zod parse failed",
+        JSON.stringify({
+          totalIssues: parsed.error.issues.length,
+          weekCount,
+          issues: issueSummary,
+        }),
+      );
+      return { ok: false as const, error: parsed.error.message };
     }
 
     let result = await callOnce(userMessage);
